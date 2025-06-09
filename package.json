@@ -3,9 +3,23 @@
   "version": "1.97.0",
   "private": true,
   "communityNodes": [
-   "n8n-nodes-memory-box",
-   "n8n-nodes-pdfco",
-   "n8n-nodes-pdf-page-extract"
+    "n8n-nodes-browserless",
+    "n8n-nodes-carbonejs",
+    "n8n-nodes-chatwoot",
+    "n8n-nodes-discord-trigger",
+    "n8n-nodes-document-generator",
+    "n8n-nodes-excel-by-templates",
+    "n8n-nodes-evolution-api",
+    "n8n-nodes-firecrawl",
+    "n8n-nodes-globals",
+    "n8n-nodes-mcp",
+    "n8n-nodes-neo4jtool",
+    "n8n-nodes-pdfkit",
+    "n8n-nodes-pgp",
+    "n8n-nodes-puppeteer",
+    "n8n-nodes-quepasa",
+    "n8n-nodes-scrapeninja",
+    "n8n-nodes-text-manipulation"
 ],
   "engines": {
     "node": ">=22.16",
