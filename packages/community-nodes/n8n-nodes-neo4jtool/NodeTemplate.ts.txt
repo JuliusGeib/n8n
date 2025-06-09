@@ -1,0 +1,266 @@
+// ============================================================================
+// N8N Neo4j Dedicated Node Template (v4 - Parameter Handling Best Practices)
+// ============================================================================
+// Purpose: Base template for creating dedicated Neo4j nodes for specific actions,
+//          intended to be used with the "multiple instances" pattern for AI Agents.
+// Usage:
+// 1. Create a directory: nodes/Neo4jYourActionName/
+// 2. Copy this file into that directory.
+// 3. Rename this file: Neo4jYourActionName.node.ts
+// 4. Rename the class: export class Neo4jYourActionName implements INodeType { ... }
+// 5. Update the description object: displayName, name ('neo4jYourActionName'), description, properties, etc.
+// 6. Place an icon file (e.g., neo4j.svg or a custom icon.svg) in this directory. Update 'icon' path if needed.
+// 7. Implement the execute method with specific Cypher logic for this action.
+// 8. Register the compiled JS path (e.g., "dist/nodes/Neo4jYourActionName/Neo4jYourActionName.node.js")
+//    in package.json's n8n.nodes array.
+// Key Learnings Incorporated:
+// - Correct DB Connection/Session/Driver handling & closing.
+// - Importance of matching getNodeParameter default with property default.
+// - Handling optional number parameters (check for null & undefined).
+// - Handling JSON parameters (parsing, error handling, storing as string).
+// - Using NodeOperationError for user-facing errors.
+// ============================================================================
+
+import type {
+	IExecuteFunctions,
+	IDataObject,
+	INodeExecutionData,
+	INodeType,
+	INodeTypeDescription,
+	ICredentialDataDecryptedObject,
+	// Add other necessary types from n8n-workflow if needed
+} from 'n8n-workflow';
+import { NodeOperationError, jsonParse } from 'n8n-workflow'; // Import jsonParse for JSON parameters
+import neo4j, { Driver, Session, auth } from 'neo4j-driver'; // Import necessary driver components
+
+// --- IMPORTANT: Shared Utilities ---
+// Assuming this node file is at: nodes/Neo4jYourActionName/Neo4jYourActionName.node.ts
+// Assuming shared helpers are at: nodes/neo4j/helpers/
+import {
+	runCypherQuery,
+	parseNeo4jError,
+} from '../neo4j/helpers/utils'; // Verify this relative path
+
+// --- Node Class Definition ---
+// TODO: Rename class to match file name (e.g., Neo4jFindBusinessByName)
+export class Neo4jTemplateNode implements INodeType {
+
+	// --- Node Description for n8n UI ---
+	description: INodeTypeDescription = {
+		// TODO: Update basic node information
+		displayName: 'Neo4j: My Action', // User-friendly name
+		name: 'neo4jMyAction', // Technical name (camelCase, unique, matches class/file base)
+		icon: 'file:icon.svg', // Assumes icon file is in the same directory, or use '../neo4j/neo4j.svg'
+		group: ['database'], // Or a more specific group like 'neo4jActions'
+		version: 1,
+		subtitle: '={{$parameter["someInput"]}}', // Optional: Show a key parameter value dynamically
+		description: 'Description of what this specific node does', // TODO: Describe the node's purpose
+		defaults: {
+			name: 'Neo4j My Action', // Default name for instances in the workflow
+		},
+		inputs: ['main'],
+		outputs: ['main'],
+		// @ts-ignore - Workaround: Suppress TS error for usableAsTool in this project context
+		usableAsTool: true,
+
+		// --- Credentials ---
+		credentials: [
+			{
+				// IMPORTANT: Use the standard 'neo4jApi' unless specific reasons require a unique one.
+				// Ensure 'neo4jApi' is registered in package.json -> n8n.credentials
+				name: 'neo4jApi',
+				required: true,
+			},
+		],
+
+		// --- Node Specific Input Properties ---
+		properties: [
+			// TODO: Define the input fields needed for this specific action.
+			// Example 1: Required String Parameter
+			{
+				displayName: 'Required ID',
+				name: 'requiredId',
+				type: 'string',
+				required: true, // Mark as required
+				default: '', // Default for required string is usually ''
+				description: 'The mandatory ID for this operation.',
+			},
+			// Example 2: Optional String Parameter
+			{
+				displayName: 'Optional Name',
+				name: 'optionalName',
+				type: 'string',
+				// required: false, // This is implicit if 'required: true' is absent
+				default: '', // Default for optional string is usually ''
+				description: 'An optional name value.',
+			},
+			// Example 3: Optional Number Parameter (Potential Null Issue)
+			{
+				displayName: 'Optional Count',
+				name: 'optionalCount',
+				type: 'number',
+				default: undefined, // Use undefined if no natural default exists
+				typeOptions: {
+					numberStep: 1, // For integers
+				},
+				description: 'An optional count. IMPORTANT: Check for !== undefined AND !== null before use.',
+			},
+			// Example 4: Optional JSON Parameter
+			{
+				displayName: 'Additional Data (JSON)',
+				name: 'additionalDataJson', // Use distinct name
+				type: 'json',
+				default: '{}', // Default to empty JSON object string
+				description: 'Optional additional data in JSON format (e.g., {"key": "value"}). Stored as string.',
+			},
+		],
+	};
+
+	// Optional: Define methods like loadOptions if needed
+	// methods = { ... };
+
+	// --- Node Execution Logic ---
+	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
+		const items = this.getInputData();
+		this.logger.debug(`Received items: ${JSON.stringify(items)}`); // Log received items
+		const returnData: INodeExecutionData[] = [];
+		let driver: Driver | undefined;
+		let session: Session | undefined;
+		const node = this.getNode();
+
+		try {
+			// 1. Get Credentials
+			const credentials = await this.getCredentials('neo4jApi') as ICredentialDataDecryptedObject;
+
+			// 2. Validate Credentials
+			if (!credentials || !credentials.host || !credentials.port || !credentials.username || typeof credentials.password === 'undefined') {
+				throw new NodeOperationError(node, 'Neo4j credentials are not fully configured or missing required fields (host, port, username, password).', { itemIndex: 0 });
+			}
+
+			const uri = `${credentials.host}:${credentials.port}`;
+			const user = credentials.username as string;
+			const password = credentials.password as string;
+			const database = credentials.database as string || 'neo4j';
+
+			// 3. Establish Neo4j Connection
+			try {
+				driver = neo4j.driver(uri, auth.basic(user, password));
+				await driver.verifyConnectivity();
+				this.logger.debug('Neo4j driver connected successfully.');
+				session = driver.session({ database });
+				this.logger.debug(`Neo4j session opened for database: ${database}`);
+			} catch (connectionError) {
+				this.logger.error('Failed to connect to Neo4j or open session:', connectionError);
+				throw parseNeo4jError(node, connectionError, 'Failed to establish Neo4j connection or session.');
+			}
+
+			// 4. Loop Through Input Items
+			for (let i = 0; i < items.length; i++) {
+				try {
+					this.logger.debug(`Processing item index: ${i}`);
+					this.logger.debug(`Item content: ${JSON.stringify(items[i])}`);
+
+					// 5. Get Input Parameters for Current Item
+					// IMPORTANT: Ensure the 3rd argument (defaultValue) matches the 'default' in properties definition!
+					const requiredId = this.getNodeParameter('requiredId', i, '') as string;
+					const optionalName = this.getNodeParameter('optionalName', i, '') as string;
+					const optionalCount = this.getNodeParameter('optionalCount', i, undefined) as number | undefined;
+					const additionalDataJson = this.getNodeParameter('additionalDataJson', i, '{}') as string;
+
+					this.logger.debug(`Raw additionalDataJson value: ${additionalDataJson}`);
+					this.logger.debug(`Type of additionalDataJson: ${typeof additionalDataJson}`);
+
+					// Safely parse JSON parameter
+					let additionalData: IDataObject = {};
+					if (additionalDataJson !== undefined && additionalDataJson.trim() !== '' && additionalDataJson.trim() !== '{}') {
+						try {
+							additionalData = jsonParse(additionalDataJson);
+							if (typeof additionalData !== 'object' || additionalData === null || Array.isArray(additionalData)) {
+								throw new NodeOperationError(node, 'Additional Data must be a valid JSON object.', { itemIndex: i });
+							}
+						} catch (jsonError) {
+							throw new NodeOperationError(node, `Invalid JSON in Additional Data field: ${jsonError.message}`, { itemIndex: i });
+						}
+					}
+
+					// 6. Define Specific Cypher Query & Parameters for this Action
+					// TODO: Write the Cypher query. Use $parameters.
+					const query = 'RETURN "Implement Cypher Query Here" AS message'; // Placeholder
+					const parameters: IDataObject = { requiredId }; // Start with required params
+
+					// Add optional parameters only if they have meaningful values
+					if (optionalName !== undefined && optionalName !== '') {
+						parameters.optionalName = optionalName;
+						// TODO: Add corresponding SET clause or use in WHERE etc.
+					}
+					// IMPORTANT: Check for both undefined AND null for optional numbers
+					if (optionalCount !== undefined && optionalCount !== null) {
+						parameters.optionalCount = neo4j.int(optionalCount); // Use neo4j.int()
+						// TODO: Add corresponding SET clause or use in WHERE etc.
+					}
+					// Store parsed JSON as a string
+					parameters.additionalDataJsonString = JSON.stringify(additionalData);
+					// TODO: Add corresponding SET clause (e.g., SET n.additionalData = $additionalDataJsonString)
+
+
+					const isWrite = false; // TODO: Set to true for CREATE/MERGE/SET/DELETE
+
+					this.logger.debug(`Executing query: ${query}`);
+					this.logger.debug(`With parameters: ${JSON.stringify(parameters)}`);
+
+					// 7. Execute Query
+					if (!session) {
+						throw new NodeOperationError(node, 'Neo4j session is not available.', { itemIndex: i });
+					}
+					const results = await runCypherQuery.call(this, session, query, parameters, isWrite, i);
+					returnData.push(...results);
+
+				} catch (itemError) {
+					// 8. Handle Item-Level Errors
+					if (this.continueOnFail(itemError)) {
+						const item = items[i];
+						// Use parseNeo4jError for consistent error formatting
+						const parsedError = parseNeo4jError(node, itemError);
+						const errorData = { ...item.json, error: parsedError };
+						returnData.push({
+							json: errorData,
+							error: new NodeOperationError(node, parsedError.message, { itemIndex: i, description: parsedError.description ?? undefined }),
+							pairedItem: { item: i }
+						});
+						continue;
+					}
+					// Re-throw error if not continuing on fail
+					throw itemError;
+				}
+			}
+
+			// 9. Return Results
+			return this.prepareOutputData(returnData);
+
+		} catch (error) {
+			// 10. Handle Node-Level Errors
+			if (error instanceof NodeOperationError) { throw error; }
+			// Ensure itemIndex is attached if possible before parsing
+			if (items.length === 1) (error as any).itemIndex = 0;
+			throw parseNeo4jError(node, error);
+		} finally {
+			// 11. Close Session and Driver
+			if (session) {
+				try {
+					await session.close();
+					this.logger.debug('Neo4j session closed successfully.');
+				} catch (closeError) {
+					this.logger.error('Error closing Neo4j session:', closeError);
+				}
+			}
+			if (driver) {
+				try {
+					await driver.close();
+					this.logger.debug('Neo4j driver closed successfully.');
+				} catch (closeError) {
+					this.logger.error('Error closing Neo4j driver:', closeError);
+				}
+			}
+		}
+	}
+}

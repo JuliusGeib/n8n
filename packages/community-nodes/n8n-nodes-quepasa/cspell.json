@@ -1,0 +1,28 @@
+{
+    "version": "0.2",
+    "ignorePaths": [],
+    "dictionaryDefinitions": [],
+    "dictionaries": [],
+    "words": [
+        "chatid",
+        "forwardinternal",
+        "inreply",
+        "messageid",
+        "paramater",
+        "Quepasa",
+        "sendbinary",
+        "sendencoded",
+        "TRACKID"
+    ],
+    "ignoreWords": [
+        "isbot",
+        "lintfix",
+        "luxon",
+        "picdata",
+        "picinfo",
+        "pictureid",
+        "sendurl",
+        "universalify"
+    ],
+    "import": []
+}

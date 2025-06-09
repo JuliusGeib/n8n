@@ -1,0 +1,112 @@
+{
+  "name": "n8n-nodes-neo4jtool",
+  "version": "0.1.429",
+  "description": "a Neo4j node for n8n workflows",
+  "keywords": [
+    "n8n-community-node-package",
+    "n8n-community-node-neo4j",
+    "n8n-nodes-neo4jtool"
+  ],
+  "license": "MIT",
+  "homepage": "",
+  "author": {
+    "name": "Heictor Hsiao",
+    "email": "amigo.golf@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/golfamigo/n8n-nodes-neo4jtool.git"
+  },
+  "engines": {
+    "node": ">=18.10",
+    "pnpm": ">=9.1"
+  },
+  "packageManager": "pnpm@9.1.4",
+  "main": "dist/index.js",
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "build": "rimraf ./dist && tsc && gulp build:icons",
+    "dev": "tsc --watch",
+    "format": "prettier nodes credentials --write",
+    "lint": "eslint nodes credentials package.json",
+    "lintfix": "eslint nodes credentials package.json --fix",
+    "test": "jest",
+    "prepublishOnly": "pnpm build && pnpm lint -c .eslintrc.prepublish.js nodes credentials package.json",
+    "dev:n8n": "cross-env N8N_USER_FOLDER=\"E:\\gitHub\\n8n-nodes-neo4jtool\\.n8n-dev-data\" DB_TYPE='sqlite' N8N_HOST='127.0.0.1' N8N_LOG_FILE='./n8n-debug.log' n8n start"
+  },
+  "files": [
+    "dist"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/Neo4jApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/Neo4jFindBusinessByName/Neo4jFindBusinessByName.node.js",
+      "dist/nodes/neo4j/Neo4j.node.js",
+      "dist/nodes/Neo4jFindUserByExternalId/Neo4jFindUserByExternalId.node.js",
+      "dist/nodes/Neo4jCreateBusiness/Neo4jCreateBusiness.node.js",
+      "dist/nodes/Neo4jUpdateBusiness/Neo4jUpdateBusiness.node.js",
+      "dist/nodes/Neo4jDeleteBusiness/Neo4jDeleteBusiness.node.js",
+      "dist/nodes/Neo4jFindServicesByBusiness/Neo4jFindServicesByBusiness.node.js",
+      "dist/nodes/Neo4jCreateService/Neo4jCreateService.node.js",
+      "dist/nodes/Neo4jUpdateService/Neo4jUpdateService.node.js",
+      "dist/nodes/Neo4jDeleteService/Neo4jDeleteService.node.js",
+      "dist/nodes/Neo4jCreateCustomer/Neo4jCreateCustomer.node.js",
+      "dist/nodes/Neo4jUpdateCustomer/Neo4jUpdateCustomer.node.js",
+      "dist/nodes/Neo4jDeleteCustomer/Neo4jDeleteCustomer.node.js",
+      "dist/nodes/Neo4jCreateUser/Neo4jCreateUser.node.js",
+      "dist/nodes/Neo4jUpdateUser/Neo4jUpdateUser.node.js",
+      "dist/nodes/Neo4jCreateBooking/Neo4jCreateBooking.node.js",
+      "dist/nodes/Neo4jUpdateBooking/Neo4jUpdateBooking.node.js",
+      "dist/nodes/Neo4jDeleteBooking/Neo4jDeleteBooking.node.js",
+      "dist/nodes/Neo4jCreateResource/Neo4jCreateResource.node.js",
+      "dist/nodes/Neo4jUpdateResource/Neo4jUpdateResource.node.js",
+      "dist/nodes/Neo4jDeleteResource/Neo4jDeleteResource.node.js",
+      "dist/nodes/Neo4jListResourceTypes/Neo4jListResourceTypes.node.js",
+      "dist/nodes/Neo4jFindAvailableSlotsTimeOnly/Neo4jFindAvailableSlotsTimeOnly.node.js",
+      "dist/nodes/Neo4jFindAvailableSlotsStaffOnly/Neo4jFindAvailableSlotsStaffOnly.node.js",
+      "dist/nodes/Neo4jFindAvailableSlotsResourceOnly/Neo4jFindAvailableSlotsResourceOnly.node.js",
+      "dist/nodes/Neo4jFindAvailableSlotsStaffAndResource/Neo4jFindAvailableSlotsStaffAndResource.node.js",
+      "dist/nodes/Neo4jSetBusinessHours/Neo4jSetBusinessHours.node.js",
+      "dist/nodes/Neo4jGetBusinessHours/Neo4jGetBusinessHours.node.js",
+      "dist/nodes/Neo4jDeleteBusinessHours/Neo4jDeleteBusinessHours.node.js",
+      "dist/nodes/Neo4jSetStaffAvailability/Neo4jSetStaffAvailability.node.js",
+      "dist/nodes/Neo4jCreateStaff/Neo4jCreateStaff.node.js",
+      "dist/nodes/Neo4jUpdateStaff/Neo4jUpdateStaff.node.js",
+      "dist/nodes/Neo4jDeleteStaff/Neo4jDeleteStaff.node.js",
+      "dist/nodes/Neo4jLinkStaffToUser/Neo4jLinkStaffToUser.node.js",
+      "dist/nodes/Neo4jLinkStaffToService/Neo4jLinkStaffToService.node.js",
+      "dist/nodes/Neo4jFindCustomerByExternalIdAndBusinessId/Neo4jFindCustomerByExternalIdAndBusinessId.node.js",
+      "dist/nodes/Neo4jFindStaffByExternalId/Neo4jFindStaffByExternalId.node.js",
+      "dist/nodes/Neo4jVerifyServiceSetup/Neo4jVerifyServiceSetup.node.js",
+      "dist/nodes/Neo4jCreateResourceType/Neo4jCreateResourceType.node.js",
+      "dist/nodes/Neo4jLinkServiceToResourceType/Neo4jLinkServiceToResourceType.node.js",
+      "dist/nodes/Neo4jListBookings/Neo4jListBookings.node.js"
+    ]
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.14.1",
+    "@typescript-eslint/parser": "^7.15.0",
+    "cross-env": "^7.0.3",
+    "eslint": "^8.56.0",
+    "eslint-plugin-n8n-nodes-base": "^1.16.1",
+    "gulp": "^4.0.2",
+    "jest": "^29.7.0",
+    "n8n": "^1.88.0",
+    "prettier": "^3.3.2",
+    "rimraf": "^5.0.10",
+    "ts-jest": "^29.3.2",
+    "typescript": "^5.5.3"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  },
+  "dependencies": {
+    "@types/luxon": "^3.6.2",
+    "luxon": "^3.6.1",
+    "neo4j-driver": "^5.28.1"
+  }
+}

@@ -1,0 +1,82 @@
+import {
+	IDataObject,
+	IExecuteFunctions,
+} from 'n8n-workflow';
+
+import {
+	apiRequest,
+} from '../GenericFunctions';
+
+import { CWModels } from '../models';
+
+export async function resourcePublic(this: IExecuteFunctions, operation: string, items: any, i: number): Promise<any> { // tslint:disable-line:no-any
+	const baseEndpoint = '/public/api/v1/inboxes/{{inbox_identifier}}';
+
+	const inboxIdentifier = this.getNodeParameter('inboxIdentifier', i) as string;
+	let endpoint: string = baseEndpoint.replace('{{inbox_identifier}}', inboxIdentifier);
+
+	let responseData;
+	if (operation === 'publicContactCreate') {
+		endpoint = endpoint + "/contacts";
+
+		const body: CWModels.ContactCreateRequest = {
+			name: this.getNodeParameter('name', i) as string,
+			inbox_id: this.getNodeParameter('inboxId', i, null) as string | undefined,
+			phone_number: this.getNodeParameter('phoneNumber', i, null) as string | undefined,
+			email: this.getNodeParameter('email', i, null) as string | undefined,
+			source_id: this.getNodeParameter('sourceId', i, null) as string | undefined,
+			identifier: this.getNodeParameter('contactIdentifier', i, null) as string | undefined,
+		};
+
+		// Handle custom headers
+		const parCustomAttributes = this.getNodeParameter('customAttributes', i) as IDataObject;
+		if (parCustomAttributes && parCustomAttributes.attribute) {
+			const data: IDataObject = {};
+
+			const atts = parCustomAttributes.attribute as IDataObject[];
+			atts.map(property => {
+				data[property.key as string] = property.value;
+			});
+
+			body.custom_attributes = data;
+		}
+
+		responseData = await apiRequest.call(this, 'POST', endpoint, body);
+	}
+	else if (operation === 'contact'){
+		endpoint = endpoint + "/contacts/{{source_id}}";
+
+		const contactIdentifier = this.getNodeParameter('sourceId', i) as string;
+		endpoint = endpoint.replace('{{source_id}}', contactIdentifier);
+
+		responseData = await apiRequest.call(this, 'GET', endpoint);
+	}
+	else if (operation === 'messageCreate') {
+		const body: CWModels.CreateMessageRequest = {
+			content: this.getNodeParameter('content', i) as string,
+		};
+
+		endpoint = endpoint + "/contacts/{{source_id}}/conversations/{{conversation_id}}/messages";
+
+		const contactIdentifier = this.getNodeParameter('sourceId', i) as string;
+		endpoint = endpoint.replace('{{source_id}}', contactIdentifier);
+
+		const conversationId = this.getNodeParameter('conversationId', i) as string;
+		endpoint = endpoint.replace('{{conversation_id}}', conversationId);
+
+		responseData = await apiRequest.call(this, 'POST', endpoint, body);
+	}
+	else if (operation === 'messages') {
+		endpoint = endpoint + "/contacts/{{source_id}}/conversations/{{conversationId}}/messages";
+
+		const contactIdentifier = this.getNodeParameter('sourceId', i) as string;
+		endpoint = endpoint.replace('{{source_id}}', contactIdentifier);
+
+		const conversationId = this.getNodeParameter('conversationId', i) as string;
+		endpoint = endpoint.replace('{{conversationId}}', conversationId);
+
+		responseData = await apiRequest.call(this, 'GET', endpoint);
+	}
+
+	return responseData;
+}
