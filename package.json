@@ -2,6 +2,11 @@
   "name": "n8n-monorepo",
   "version": "1.97.0",
   "private": true,
+  "communityNodes": [
+   "n8n-nodes-memory-box",
+   "n8n-nodes-pdfco",
+   "n8n-nodes-pdf-page-extract"
+],
   "engines": {
     "node": ">=22.16",
     "pnpm": ">=10.2.1"
