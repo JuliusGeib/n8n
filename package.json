@@ -8,7 +8,6 @@
     "n8n-nodes-chatwoot",
     "n8n-nodes-discord-trigger",
     "n8n-nodes-document-generator",
-    "n8n-nodes-excel-by-templates",
     "n8n-nodes-evolution-api",
     "n8n-nodes-firecrawl",
     "n8n-nodes-globals",
